@@ -50,7 +50,7 @@ function M.enable()
       })
     end,
   })
-  api.nvim_create_autocmd({ 'CmdlineEnter', 'CmdlineChanged' }, {
+  api.nvim_create_autocmd({ 'CmdlineChanged' }, {
     group = group,
     callback = function(ev)
       pcall(api.nvim_buf_clear_namespace, ev.buf, ns, 0, -1)
