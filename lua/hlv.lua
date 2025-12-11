@@ -28,7 +28,18 @@ local hlv = function() -- TODO: https://github.com/vim/vim/issues/18888
   )
 end
 
+local hlr = function(range) -- TODO: char/block/mark https://github.com/neovim/neovim/issues/22297
+  if not range or not range[1] or not range[2] then return end
+  vim.hl.range(0, ns, 'Visual', { range[1] - 1, 0 }, { range[2] - 1, 0 }, { regtype = 'V' })
+end
+
 M.hlv = hlv
+
+local parse_range = function(cmd) -- TODO: https://github.com/neovim/neovim/pull/36665
+  local res = vim.F.npcall(api.nvim_parse_cmd, cmd, {})
+    or vim.F.npcall(api.nvim_parse_cmd, cmd .. 'a', {})
+  return res and res.range or nil
+end
 
 function M.enable()
   api.nvim_create_augroup(group, { clear = true })
@@ -54,7 +65,12 @@ function M.enable()
     group = group,
     callback = function(ev)
       pcall(api.nvim_buf_clear_namespace, ev.buf, ns, 0, -1)
-      if fn.getcmdline():match("^%s*'<%s*,%s*'>%s*") then hlv() end
+      local cmd = fn.getcmdline()
+      if cmd:match("^%s*'<%s*,%s*'>%s*") then
+        hlv()
+      else
+        hlr(parse_range(cmd))
+      end
     end,
   })
   api.nvim_create_autocmd('CmdlineLeave', {
