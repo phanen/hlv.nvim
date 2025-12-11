@@ -1,38 +1,59 @@
 local api, fn = vim.api, vim.fn
 ---START INJECT hlv.lua
 
-local group = 'u.hlv'
-
 local M = {}
 
-local ns = api.nvim_create_namespace('visual_range_highlight')
+local group = 'u.hlv'
+local ns = api.nvim_create_namespace(group)
 
-local hlv = function() -- TODO: https://github.com/vim/vim/issues/18888
+local block_width = function(pos1, pos2)
+  local left = math.min(pos1[3] + pos1[4], pos2[3] + pos2[4])
+  return fn.max(fn.map(fn.range(pos1[2], pos2[2]), "col([v:val, '$'])")) - left
+end
+
+---@param is_maxcol boolean
+local hlv = function(is_maxcol) -- TODO: https://github.com/vim/vim/issues/18888
   local pos1, pos2 = fn.getpos("'<"), fn.getpos("'>")
-  local max_col1 = fn.col({ pos1[2], '$' })
-  pos1[3] = math.min(pos1[3], max_col1)
-  local max_col2 = fn.col({ pos2[2], '$' })
-  pos2[3] = math.min(pos2[3], max_col2)
   local visualmode = fn.visualmode()
-  local width = (pos1[3] >= max_col2 or pos2[3] >= max_col2)
-      and visualmode == '\022'
-      and fn.max(fn.map(fn.range(pos1[2], pos2[2]), "col([v:val, '$'])")) - math.abs(
-        pos1[3] - pos2[3]
-      )
-    or ''
-  local _, _ = vim.hl.range(0, ns, 'Visual', "'<", "'>", {
-    regtype = fn.visualmode() .. width,
-    inclusive = vim.o.sel:sub(1, 1) ~= 'e',
-  })
+  local width = is_maxcol and block_width(pos1, pos2) or ''
+  vim._with(
+    { wo = { ve = 'all' } },
+    function()
+      vim.hl.range(0, ns, 'Visual', "'<", "'>", {
+        regtype = visualmode .. width,
+        inclusive = vim.o.sel:sub(1, 1) ~= 'e',
+      })
+    end
+  )
 end
 
 function M.enable()
   api.nvim_create_augroup(group, { clear = true })
+  local maxcol = vim.v.maxcol
+  local last_curswant, id ---@type integer?, integer?
+  api.nvim_create_autocmd('ModeChanged', {
+    group = group,
+    pattern = { '\022:*', '*:\022' },
+    callback = function(ev)
+      local leave = ev.match:sub(1, 1) == '\022'
+      if id then
+        pcall(api.nvim_del_autocmd, id)
+        id = nil
+      end
+      if leave then return end
+      id = api.nvim_create_autocmd('CursorMoved', {
+        group = group,
+        callback = function()
+          if fn.mode() == '\22' then last_curswant = fn.getcurpos()[5] end
+        end,
+      })
+    end,
+  })
   api.nvim_create_autocmd({ 'CmdlineEnter', 'CmdlineChanged' }, {
     group = group,
     callback = function(ev)
       pcall(api.nvim_buf_clear_namespace, ev.buf, ns, 0, -1)
-      if fn.getcmdline():match("^'%<,'>") then hlv() end
+      if fn.getcmdline():match("^%s*'<%s*,%s*'>%s*") then hlv(last_curswant == maxcol) end
     end,
   })
   api.nvim_create_autocmd('CmdlineLeave', {

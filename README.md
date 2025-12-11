@@ -1,8 +1,16 @@
-Highlight visual when in cmdline.
+Highlight visual when in cmdline. (Mainly to fix `vim._extui` regression)
 
 ```
-nvim --clean --cmd 'se rtp^=.' lua/hlv.lua
+nvim --clean --cmd 'se rtp^=.' +"lua require('vim._extui').enable{}" lua/hlv.lua
 ```
+
+## TODO
+* More address types
+  * `:h :range`
+  * `:h nvim_parse_cmd` (cannot parse address only currently)
+* Builtin command preview?
+  * `:h command-preview` (don't support builtin command)
+  * workaround known issues https://github.com/neovim/neovim/issues/28510 (nvim-hlslens, blink.cmp)
 
 ## credit
 * "autopeek" https://github.com/echasnovski/mini.nvim/blob/ac06b81bd331f9fee1fbe3d6e721c0ec7640fb01/lua/mini/cmdline.lua#L895
