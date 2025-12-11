@@ -5,17 +5,18 @@ local M = {}
 
 local group = 'u.hlv'
 local ns = api.nvim_create_namespace(group)
+local last_curswant, id ---@type integer?, integer?
+local maxcol = vim.v.maxcol
 
 local block_width = function(pos1, pos2)
   local left = math.min(pos1[3] + pos1[4], pos2[3] + pos2[4])
   return fn.max(fn.map(fn.range(pos1[2], pos2[2]), "col([v:val, '$'])")) - left
 end
 
----@param is_maxcol boolean
-local hlv = function(is_maxcol) -- TODO: https://github.com/vim/vim/issues/18888
+local hlv = function() -- TODO: https://github.com/vim/vim/issues/18888
   local pos1, pos2 = fn.getpos("'<"), fn.getpos("'>")
   local visualmode = fn.visualmode()
-  local width = is_maxcol and block_width(pos1, pos2) or ''
+  local width = last_curswant == maxcol and block_width(pos1, pos2) or ''
   vim._with(
     { wo = { ve = 'all' } },
     function()
@@ -27,10 +28,10 @@ local hlv = function(is_maxcol) -- TODO: https://github.com/vim/vim/issues/18888
   )
 end
 
+M.hlv = hlv
+
 function M.enable()
   api.nvim_create_augroup(group, { clear = true })
-  local maxcol = vim.v.maxcol
-  local last_curswant, id ---@type integer?, integer?
   api.nvim_create_autocmd('ModeChanged', {
     group = group,
     pattern = { '\022:*', '*:\022' },
@@ -53,7 +54,7 @@ function M.enable()
     group = group,
     callback = function(ev)
       pcall(api.nvim_buf_clear_namespace, ev.buf, ns, 0, -1)
-      if fn.getcmdline():match("^%s*'<%s*,%s*'>%s*") then hlv(last_curswant == maxcol) end
+      if fn.getcmdline():match("^%s*'<%s*,%s*'>%s*") then hlv() end
     end,
   })
   api.nvim_create_autocmd('CmdlineLeave', {
