@@ -61,18 +61,20 @@ function M.enable()
       })
     end,
   })
-  api.nvim_create_autocmd({ 'CmdlineChanged' }, {
-    group = group,
-    callback = function(ev)
-      pcall(api.nvim_buf_clear_namespace, ev.buf, ns, 0, -1)
-      local cmd = fn.getcmdline()
+
+  vim.ui_attach(ns, { ext_cmdline = true, set_cmdheight = false }, function(ev, ...)
+    ---@type CmdContent, any, string
+    local content, _, firstc, _ = ...
+    if ev == 'cmdline_show' and firstc == ':' then
+      local cmd = vim.iter(content):map(function(chunk) return chunk[2] end):join('')
+      pcall(api.nvim_buf_clear_namespace, 0, ns, 0, -1)
       if cmd:match("^%s*'<%s*,%s*'>%s*") then
         hlv()
       else
         hlr(parse_range(cmd))
       end
-    end,
-  })
+    end
+  end)
   api.nvim_create_autocmd('CmdlineLeave', {
     group = group,
     callback = function(ev) pcall(api.nvim_buf_clear_namespace, ev.buf, ns, 0, -1) end,
