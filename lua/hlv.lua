@@ -68,7 +68,8 @@ function M.enable()
     if ev == 'cmdline_show' and firstc == ':' then
       local cmd = vim.iter(content):map(function(chunk) return chunk[2] end):join('')
       pcall(api.nvim_buf_clear_namespace, 0, ns, 0, -1)
-      if cmd:match("^%s*'<%s*,%s*'>%s*") then
+      if cmd:match('^%s*%%') then
+      elseif cmd:match("^%s*'<%s*,%s*'>%s*") then
         hlv()
       else
         hlr(parse_range(cmd))
