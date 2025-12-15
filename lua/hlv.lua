@@ -7,6 +7,7 @@ local group = 'u.hlv'
 local ns = api.nvim_create_namespace(group)
 local last_curswant, id ---@type integer?, integer?
 local maxcol = vim.v.maxcol
+local last_view ---@type vim.fn.winsaveview.ret?
 
 local block_width = function(pos1, pos2)
   local left = math.min(pos1[3] + pos1[4], pos2[3] + pos2[4])
@@ -33,6 +34,14 @@ local hlr = function(range) -- TODO: char/block/mark https://github.com/neovim/n
   vim.hl.range(0, ns, 'Visual', { range[1] - 1, 0 }, { range[2] - 1, 0 }, { regtype = 'V' })
 end
 
+---@param lnum integer
+local hll = function(lnum)
+  last_view = last_view or fn.winsaveview()
+  pcall(api.nvim_win_set_cursor, 0, { lnum, 0 })
+  local opts = { end_line = lnum, hl_group = 'Visual', hl_eol = true }
+  pcall(api.nvim_buf_set_extmark, 0, ns, lnum - 1, 0, opts)
+end
+
 M.hlv = hlv
 
 local parse_range = function(cmd) -- TODO: https://github.com/neovim/neovim/pull/36665
@@ -42,6 +51,7 @@ local parse_range = function(cmd) -- TODO: https://github.com/neovim/neovim/pull
 end
 
 function M.enable()
+  if not vim.F.npcall(function() return require('vim._extui.shared').cfg.enable end) then return end
   api.nvim_create_augroup(group, { clear = true })
   api.nvim_create_autocmd('ModeChanged', {
     group = group,
@@ -69,7 +79,9 @@ function M.enable()
       local cmd = vim.iter(content):map(function(chunk) return chunk[2] end):join('')
       pcall(api.nvim_buf_clear_namespace, 0, ns, 0, -1)
       if cmd:match('^%s*%%') then
-      elseif cmd:match("^%s*'<%s*,%s*'>%s*") then
+      elseif cmd:match('^%s*%d+%s*$') then
+        hll(tonumber(cmd:match('(%d+)')))
+      elseif cmd:match("^%s*'<%s*,%s*'>%s*") or cmd:match('^%s*%*%s*$') then
         hlv()
       else
         hlr(parse_range(cmd))
@@ -78,7 +90,13 @@ function M.enable()
   end)
   api.nvim_create_autocmd('CmdlineLeave', {
     group = group,
-    callback = function(ev) pcall(api.nvim_buf_clear_namespace, ev.buf, ns, 0, -1) end,
+    callback = function(ev)
+      if last_view and vim.v.event.abort then
+        pcall(fn.winrestview, last_view)
+        last_view = nil
+      end
+      pcall(api.nvim_buf_clear_namespace, ev.buf, ns, 0, -1)
+    end,
   })
 end
 
