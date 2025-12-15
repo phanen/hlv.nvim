@@ -91,7 +91,10 @@ function M.enable()
   api.nvim_create_autocmd('CmdlineLeave', {
     group = group,
     callback = function(ev)
-      if last_view and vim.v.event.abort then pcall(fn.winrestview, last_view) end
+      if last_view then
+        pcall(fn.winrestview, last_view)
+        if not vim.v.event.abort then vim.cmd('norm! m`') end
+      end
       last_view = nil
       pcall(api.nvim_buf_clear_namespace, ev.buf, ns, 0, -1)
     end,
