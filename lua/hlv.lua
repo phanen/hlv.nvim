@@ -37,6 +37,7 @@ end
 ---@param lnum integer
 local hll = function(lnum)
   last_view = last_view or fn.winsaveview()
+  lnum = math.min(lnum, api.nvim_buf_line_count(0))
   pcall(api.nvim_win_set_cursor, 0, { lnum, 0 })
   local opts = { end_line = lnum, hl_group = 'Visual', hl_eol = true }
   pcall(api.nvim_buf_set_extmark, 0, ns, lnum - 1, 0, opts)
