@@ -51,8 +51,15 @@ local parse_range = function(cmd) -- TODO: https://github.com/neovim/neovim/pull
   return res and res.range or nil
 end
 
+---@return boolean
+local has_ui2 = function()
+  return vim.F.npcall(
+    function() return (next(api.nvim_get_autocmds({ group = 'nvim._ext_ui' }))) end
+  ) and true or false
+end
+
 function M.enable()
-  if not vim.F.npcall(function() return require('vim._extui.shared').cfg.enable end) then return end
+  if not has_ui2() then return end
   api.nvim_create_augroup(group, { clear = true })
   api.nvim_create_autocmd('ModeChanged', {
     group = group,
