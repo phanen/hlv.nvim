@@ -1,4 +1,19 @@
 local api, fn = vim.api, vim.fn
+local u = {}
+---@param func function
+---@param tname string
+---@return any, integer?
+function u.upvfind(func, tname)
+  local i = 1
+  while true do
+    local name, value = debug.getupvalue(func, i)
+    if not name then break end
+    if name == tname then return value, i end
+    i = i + 1
+  end
+  return nil
+end
+
 ---START INJECT hlv.lua
 
 local M = {}
@@ -51,6 +66,24 @@ local parse_range = function(cmd) -- TODO: https://github.com/neovim/neovim/pull
   return res and res.range or nil
 end
 
+local hl_callback = function(ev, ...)
+  ---@type CmdContent, any, string
+  local content, _, firstc, _ = ...
+  if ev == 'cmdline_show' and firstc == ':' then
+    local cmd = vim.iter(content):map(function(chunk) return chunk[2] end):join('')
+    pcall(api.nvim_buf_clear_namespace, 0, ns, 0, -1)
+    local lnum = tonumber(cmd:match('^%s*(%d+)%s*$')) ---@as integer?
+    if lnum then return hll(lnum) end
+    if last_view then pcall(fn.winrestview, last_view) end
+    if cmd:match('^%s*%%') then return end
+    if cmd:match("^%s*'<%s*,%s*'>%s*") or cmd:match('^%s*%*%s*$') then
+      hlv()
+    else
+      hlr(parse_range(cmd))
+    end
+  end
+end
+
 ---@return boolean
 local has_ui2 = function()
   return vim.F.npcall(
@@ -58,8 +91,15 @@ local has_ui2 = function()
   ) and true or false
 end
 
+---@type function?, function?, integer?
+local ui2_enable, ui_callback, i
+
 function M.enable()
   if not has_ui2() then return end
+  ui2_enable = vim.F.npcall(function() return require('vim._extui').enable end)
+  if not ui2_enable then return end
+  ui_callback, i = u.upvfind(ui2_enable, 'ui_callback')
+  if not ui_callback or not i then return end
   api.nvim_create_augroup(group, { clear = true })
   api.nvim_create_autocmd('ModeChanged', {
     group = group,
@@ -79,23 +119,9 @@ function M.enable()
       })
     end,
   })
-
-  vim.ui_attach(ns, { ext_cmdline = true, set_cmdheight = false }, function(ev, ...)
-    ---@type CmdContent, any, string
-    local content, _, firstc, _ = ...
-    if ev == 'cmdline_show' and firstc == ':' then
-      local cmd = vim.iter(content):map(function(chunk) return chunk[2] end):join('')
-      pcall(api.nvim_buf_clear_namespace, 0, ns, 0, -1)
-      local lnum = tonumber(cmd:match('^%s*(%d+)%s*$')) ---@as integer?
-      if lnum then return hll(lnum) end
-      if last_view then pcall(fn.winrestview, last_view) end
-      if cmd:match('^%s*%%') then return end
-      if cmd:match("^%s*'<%s*,%s*'>%s*") or cmd:match('^%s*%*%s*$') then
-        hlv()
-      else
-        hlr(parse_range(cmd))
-      end
-    end
+  debug.setupvalue(ui2_enable, i, function(...)
+    hl_callback(...)
+    ui_callback(...)
   end)
   api.nvim_create_autocmd('CmdlineLeave', {
     group = group,
@@ -110,6 +136,11 @@ function M.enable()
   })
 end
 
-function M.disable() pcall(api.nvim_del_augroup_by_name, group) end
+M.enable = vim.schedule_wrap(M.enable)
+
+function M.disable()
+  pcall(api.nvim_del_augroup_by_name, group)
+  if ui2_enable and i and ui_callback then debug.setupvalue(ui2_enable, i, ui_callback) end
+end
 
 return M
