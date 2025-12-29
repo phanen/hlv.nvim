@@ -23,10 +23,13 @@ local ns = api.nvim_create_namespace(group)
 local last_curswant, id ---@type integer?, integer?
 local maxcol = vim.v.maxcol
 local last_view ---@type vim.fn.winsaveview.ret?
+local update_curswant = function()
+  if fn.mode() == '\22' then last_curswant = fn.getcurpos()[5] end
+end
 
 local block_width = function(pos1, pos2)
   local left = math.min(pos1[3] + pos1[4], pos2[3] + pos2[4])
-  return fn.max(fn.map(fn.range(pos1[2], pos2[2]), "col([v:val, '$'])")) - left
+  return math.max(1, fn.max(fn.map(fn.range(pos1[2], pos2[2]), "col([v:val, '$'])")) - left)
 end
 
 local vw ---@module 'visual-whitespace'?
@@ -139,15 +142,13 @@ function M.enable()
       local leave = ev.match:sub(1, 1) == '\022'
       if id then
         pcall(api.nvim_del_autocmd, id)
+        vim.on_key(nil, ns)
         id = nil
       end
       if leave then return end
-      id = api.nvim_create_autocmd('CursorMoved', {
-        group = group,
-        callback = function()
-          if fn.mode() == '\22' then last_curswant = fn.getcurpos()[5] end
-        end,
-      })
+      update_curswant()
+      vim.on_key(update_curswant, ns)
+      id = api.nvim_create_autocmd('CursorMoved', { group = group, callback = update_curswant })
     end,
   })
   debug.setupvalue(ui2_enable, i, function(...)
