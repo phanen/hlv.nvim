@@ -29,19 +29,50 @@ local block_width = function(pos1, pos2)
   return fn.max(fn.map(fn.range(pos1[2], pos2[2]), "col([v:val, '$'])")) - left
 end
 
+local vw ---@module 'visual-whitespace'?
+---@param region [ [integer, integer, integer, integer], [integer, integer, integer, integer] ][]
+local hlws = function(region)
+  local provider_on_line = u.upvfind(vw.initialize, 'provider_on_line')
+  if not provider_on_line then return end
+  local marks_for_line = u.upvfind(provider_on_line, 'marks_for_line')
+  if not marks_for_line then return end
+  local CFG = u.upvfind(provider_on_line, 'CFG')
+  if not CFG then return end
+  local HL = u.upvfind(provider_on_line, 'HL')
+  if not HL then return end
+  local ff = vim.bo[0].fileformat
+  for _, r in ipairs(region) do
+    local row = r[1][2]
+    local s_col = r[1][3]
+    local e_col = r[2][3]
+    local nl_glyph = CFG.fileformat_chars[ff] or CFG.fileformat_chars.unix
+    for _, mark in ipairs(marks_for_line(0, row, s_col, e_col, nl_glyph)) do
+      ---@diagnostic disable-next-line: param-type-mismatch
+      api.nvim_buf_set_extmark(0, ns, row - 1, mark[2] - 1, {
+        virt_text = { { mark[3], HL } },
+        virt_text_pos = 'overlay',
+      })
+    end
+  end
+end
+
 local hlv = function() -- TODO: https://github.com/vim/vim/issues/18888
   local pos1, pos2 = fn.getpos("'<"), fn.getpos("'>")
   local visualmode = fn.visualmode()
   local width = visualmode == '\022' and last_curswant == maxcol and block_width(pos1, pos2) or ''
-  vim._with(
-    { wo = { ve = 'all' } },
-    function()
-      vim.hl.range(0, ns, 'Visual', "'<", "'>", {
-        regtype = visualmode .. width,
-        inclusive = vim.o.sel:sub(1, 1) ~= 'e',
-      })
-    end
-  )
+  vim._with({ wo = { ve = 'all' } }, function()
+    local inclusive = vim.o.sel:sub(1, 1) ~= 'e'
+    local regtype = visualmode .. width
+    vim.hl.range(0, ns, 'Visual', "'<", "'>", { regtype = regtype, inclusive = inclusive })
+    vw = vw ~= false and vim.F.npcall(require, 'visual-whitespace') or vw
+    if not vw then return end
+    local region = fn.getregionpos(fn.getpos("'<"), fn.getpos("'>"), {
+      type = regtype,
+      eol = true,
+      exclusive = not inclusive,
+    })
+    hlws(region)
+  end)
 end
 
 local hlr = function(range) -- TODO: char/block/mark https://github.com/neovim/neovim/issues/22297

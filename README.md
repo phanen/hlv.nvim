@@ -15,6 +15,7 @@ nvim --clean --cmd 'se rtp^=. nu culopt=number' --cmd "lua require('vim._extui')
 ## credit
 * https://github.com/echasnovski/mini.nvim/blob/ac06b81bd331f9fee1fbe3d6e721c0ec7640fb01/lua/mini/cmdline.lua#L895
 * https://github.com/nacro90/numb.nvim
+* https://github.com/mcauley-penney/visual-whitespace.nvim
 * similar plugins
   * https://github.com/0xAdk/full_visual_line.nvim
   * https://github.com/moyiz/command-and-cursor.nvim
