@@ -1,4 +1,3 @@
-local api, fn = vim.api, vim.fn
 local u = {}
 ---@param func function
 ---@param tname string
@@ -17,6 +16,7 @@ end
 ---START INJECT hlv.lua
 
 local M = {}
+local api, fn = vim.api, vim.fn
 
 local group = 'u.hlv'
 local ns = api.nvim_create_namespace(group)
@@ -32,7 +32,7 @@ end
 local hlv = function() -- TODO: https://github.com/vim/vim/issues/18888
   local pos1, pos2 = fn.getpos("'<"), fn.getpos("'>")
   local visualmode = fn.visualmode()
-  local width = last_curswant == maxcol and block_width(pos1, pos2) or ''
+  local width = visualmode == '\022' and last_curswant == maxcol and block_width(pos1, pos2) or ''
   vim._with(
     { wo = { ve = 'all' } },
     function()
