@@ -94,9 +94,15 @@ end
 
 M.hlv = hlv
 
+local fixcmd = function(cmd)
+  if select(2, cmd:gsub('"', '')) % 2 == 1 then cmd = cmd .. '"' end
+  if select(2, cmd:gsub("'", '')) % 2 == 1 then cmd = cmd .. "'" end
+  return cmd:match('^%A+') or cmd
+end
+local parse_cmd = vim.F.nil_wrap(api.nvim_parse_cmd)
+
 local parse_range = function(cmd) -- TODO: https://github.com/neovim/neovim/pull/36665
-  local res = vim.F.npcall(api.nvim_parse_cmd, cmd, {})
-    or vim.F.npcall(api.nvim_parse_cmd, cmd .. 'a', {})
+  local res = parse_cmd(cmd, {}) or parse_cmd(fixcmd(cmd) .. ' a', {})
   return res and res.range or nil
 end
 
