@@ -67,7 +67,7 @@ local hlv = function() -- TODO: https://github.com/vim/vim/issues/18888
     local inclusive = vim.o.sel:sub(1, 1) ~= 'e'
     local regtype = visualmode .. width
     vim.hl.range(0, ns, 'Visual', "'<", "'>", { regtype = regtype, inclusive = inclusive })
-    vw = vw ~= false and vim.F.npcall(require, 'visual-whitespace') or vw
+    vw = vw ~= false and vw or vim.F.npcall(require, 'visual-whitespace') or false
     if not vw then return end
     local region = fn.getregionpos(fn.getpos("'<"), fn.getpos("'>"), {
       type = regtype,
@@ -134,7 +134,7 @@ end
 ---@type function?, function?, integer?
 local ui2_enable, ui_callback, i
 
-function M.enable()
+M.enable = function()
   if not has_ui2() then return end
   ui2_enable = vim.F.npcall(function() return require('vim._extui').enable end)
   if not ui2_enable then return end
@@ -157,9 +157,13 @@ function M.enable()
       id = api.nvim_create_autocmd('CursorMoved', { group = group, callback = update_curswant })
     end,
   })
+
+  local version = api.nvim_exec2('version', { output = true }).output:match('NVIM (.-)\n')
+  local off = vim.version.parse(version) >= vim.version.parse('v0.12.0-dev-2110+gd30d91f3a4') and 2
+    or 1
   debug.setupvalue(ui2_enable, i, function(...)
-    hl_callback(...)
-    ui_callback(...)
+    hl_callback(select(off, ...))
+    return ui_callback(...)
   end)
   api.nvim_create_autocmd('CmdlineLeave', {
     group = group,
@@ -176,7 +180,7 @@ end
 
 M.enable = vim.schedule_wrap(M.enable)
 
-function M.disable()
+M.disable = function()
   pcall(api.nvim_del_augroup_by_name, group)
   if ui2_enable and i and ui_callback then debug.setupvalue(ui2_enable, i, ui_callback) end
 end
