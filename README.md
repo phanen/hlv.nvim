@@ -1,7 +1,7 @@
-Highlight visual when in cmdline. (Mainly to fix `vim._extui` regression)
+Highlight visual when in cmdline. (Mainly to fix `vim._core.ui2` regression)
 
 ```
-nvim --clean --cmd 'se rtp^=. nu culopt=number' --cmd "lua require('vim._extui').enable{}" lua/hlv.lua
+nvim --clean --cmd 'se rtp^=. nu culopt=number so=20' --cmd "lua require('vim._core.ui2').enable{}" lua/hlv.lua
 ```
 
 ## TODO

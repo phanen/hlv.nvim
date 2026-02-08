@@ -13,6 +13,13 @@ function u.upvfind(func, tname)
   return nil
 end
 
+---@return boolean
+function u.has_ui2()
+  local _get = vim.F.nil_wrap(vim.api.nvim_get_autocmds)
+  local get = function(name) return _get({ group = name }) end
+  return next(get('nvim.ui2') or get('nvim._ext_ui') or {}) and true or false
+end
+
 ---START INJECT hlv.lua
 
 local M = {}
@@ -124,19 +131,13 @@ local hl_callback = function(ev, ...)
   end
 end
 
----@return boolean
-local has_ui2 = function()
-  return vim.F.npcall(
-    function() return (next(api.nvim_get_autocmds({ group = 'nvim._ext_ui' }))) end
-  ) and true or false
-end
-
 ---@type function?, function?, integer?
 local ui2_enable, ui_callback, i
 
 M.enable = function()
-  if not has_ui2() then return end
-  ui2_enable = vim.F.npcall(function() return require('vim._extui').enable end)
+  if not u.has_ui2() then return end
+  local req = vim.F.nil_wrap(require)
+  ui2_enable = (req('vim._core.ui2') or req('vim._extui') or {}).enable
   if not ui2_enable then return end
   ui_callback, i = u.upvfind(ui2_enable, 'ui_callback')
   if not ui_callback or not i then return end
