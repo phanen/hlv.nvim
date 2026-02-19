@@ -1,25 +1,3 @@
-local u = {}
----@param func function
----@param tname string
----@return any, integer?
-function u.upvfind(func, tname)
-  local i = 1
-  while true do
-    local name, value = debug.getupvalue(func, i)
-    if not name then break end
-    if name == tname then return value, i end
-    i = i + 1
-  end
-  return nil
-end
-
----@return boolean
-function u.has_ui2()
-  local _get = vim.F.nil_wrap(vim.api.nvim_get_autocmds)
-  local get = function(name) return _get({ group = name }) end
-  return next(get('nvim.ui2') or get('nvim._ext_ui') or {}) and true or false
-end
-
 ---START INJECT hlv.lua
 
 local M = {}
@@ -42,13 +20,13 @@ end
 local vw ---@module 'visual-whitespace'?
 ---@param region [ [integer, integer, integer, integer], [integer, integer, integer, integer] ][]
 local hlws = function(region)
-  local provider_on_line = u.upvfind(vw.initialize, 'provider_on_line')
+  local provider_on_line = require('hlv._').upvfind(vw.initialize, 'provider_on_line')
   if not provider_on_line then return end
-  local marks_for_line = u.upvfind(provider_on_line, 'marks_for_line')
+  local marks_for_line = require('hlv._').upvfind(provider_on_line, 'marks_for_line')
   if not marks_for_line then return end
-  local CFG = u.upvfind(provider_on_line, 'CFG')
+  local CFG = require('hlv._').upvfind(provider_on_line, 'CFG')
   if not CFG then return end
-  local HL = u.upvfind(provider_on_line, 'HL')
+  local HL = require('hlv._').upvfind(provider_on_line, 'HL')
   if not HL then return end
   local ff = vim.bo[0].fileformat
   for _, r in ipairs(region) do
@@ -135,11 +113,11 @@ end
 local ui2_enable, ui_callback, i
 
 M.enable = function()
-  if not u.has_ui2() then return end
+  if not require('hlv._').has_ui2() then return end
   local req = vim.F.nil_wrap(require)
   ui2_enable = (req('vim._core.ui2') or req('vim._extui') or {}).enable
   if not ui2_enable then return end
-  ui_callback, i = u.upvfind(ui2_enable, 'ui_callback')
+  ui_callback, i = require('hlv._').upvfind(ui2_enable, 'ui_callback')
   if not ui_callback or not i then return end
   api.nvim_create_augroup(group, { clear = true })
   api.nvim_create_autocmd('ModeChanged', {
