@@ -44,8 +44,10 @@ local hlws = function(region)
   end
 end
 
+local invald_pos = { 0, 0, 0, 0 }
 local hlv = function() -- TODO: https://github.com/vim/vim/issues/18888
   local pos1, pos2 = fn.getpos("'<"), fn.getpos("'>")
+  if vim.deep_equal(pos1, invald_pos) or vim.deep_equal(pos2, invald_pos) then return end
   local visualmode = fn.visualmode()
   local width = visualmode == '\022' and last_curswant == maxcol and block_width(pos1, pos2) or ''
   vim._with({ wo = { ve = 'all' } }, function()
