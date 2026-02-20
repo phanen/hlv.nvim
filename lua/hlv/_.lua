@@ -9,6 +9,16 @@ M.has_ui2 = function()
   return next(get('nvim.ui2') or get('nvim._ext_ui') or {}) and true or false
 end
 
+local _NVIM_VERSION
+---vim.version.parse should exist, since usually we check nightly feature
+---@param version string
+---@return boolean
+M.has_version = function(version)
+  _NVIM_VERSION = _NVIM_VERSION
+    or vim.version.parse(api.nvim_exec2('version', { output = true }).output:match('NVIM (.-)\n'))
+  return _NVIM_VERSION >= vim.version.parse(version)
+end
+
 ---@param func function
 ---@param tname string
 ---@return any, integer?

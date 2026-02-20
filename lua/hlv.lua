@@ -139,9 +139,7 @@ M.enable = function()
     end,
   })
 
-  local version = api.nvim_exec2('version', { output = true }).output:match('NVIM (.-)\n')
-  local off = vim.version.parse(version) >= vim.version.parse('v0.12.0-dev-2110+gd30d91f3a4') and 2
-    or 1
+  local off = require('hlv._').has_version('v0.12.0-dev-2110+gd30d91f3a4') and 2 or 1
   debug.setupvalue(ui2_enable, i, function(...)
     hl_callback(select(off, ...))
     return ui_callback(...)
