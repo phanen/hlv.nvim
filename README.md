@@ -4,6 +4,9 @@ Highlight visual when in cmdline. (Mainly to fix `vim._core.ui2` regression)
 nvim --clean --cmd 'se rtp^=.,~/.local/share/nvim/site nu culopt=number so=20' --cmd "lua require('vim._core.ui2').enable{}" lua/hlv.lua
 ```
 
+> [!NOTE]
+> This plugin require `--luamod-dev` or https://github.com/neovim/neovim/pull/39191
+
 ## TODO
 * More address types
   * `:h :range`
