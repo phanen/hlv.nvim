@@ -155,22 +155,6 @@ M.enable = function()
       pcall(api.nvim_buf_clear_namespace, ev.buf, ns, 0, -1)
     end,
   })
-
-  pcall(function()
-    local msg = require('vim._core.ui2.messages')
-    local on_key = require('hlv._').upvfind(msg.set_pos, 'dialog_on_key')
-    if not on_key then return end
-    local on_key_wrap = function(_, typed)
-      on_key(_, typed)
-      return ''
-    end
-    local toggle_dialog = function()
-      if msg.dialog_on_key then return end
-      msg.dialog_on_key = vim.on_key(on_key_wrap, msg.dialog_on_key)
-    end
-    vim.keymap.set('c', '<c-/>', toggle_dialog)
-    vim.keymap.set('c', '<c-_>', toggle_dialog)
-  end)
 end
 
 M.enable = vim.schedule_wrap(M.enable)
